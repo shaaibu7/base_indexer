@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { useIndexerControl } from '../useIndexerControl';
+import { useIndexerControl } from '../useIndexer';
 
 // Mock fetch globally
 global.fetch = jest.fn();
