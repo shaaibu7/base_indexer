@@ -127,6 +127,36 @@ describe('ExtendedTransferQueryService', () => {
         expect(block).toHaveProperty('gasUsed');
       });
     });
+
+    it('should handle zero limit', async () => {
+      const result = await ExtendedTransferQueryService.getRecentBlocks({ limit: 0 });
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(0);
+    });
+
+    it('should handle large limit values', async () => {
+      const result = await ExtendedTransferQueryService.getRecentBlocks({ limit: 100 });
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(100);
+    });
+
+    it('should generate unique block hashes', async () => {
+      const result = await ExtendedTransferQueryService.getRecentBlocks({ limit: 5 });
+
+      const hashes = result.map((block) => block.hash);
+      const uniqueHashes = new Set(hashes);
+      expect(uniqueHashes.size).toBe(5);
+    });
+
+    it('should generate valid block numbers in descending order', async () => {
+      const result = await ExtendedTransferQueryService.getRecentBlocks({ limit: 3 });
+
+      const numbers = result.map((block) => parseInt(block.number));
+      expect(numbers[0]).toBeGreaterThan(numbers[1]);
+      expect(numbers[1]).toBeGreaterThan(numbers[2]);
+    });
   });
 });
 
