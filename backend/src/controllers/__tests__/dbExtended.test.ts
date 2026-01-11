@@ -269,6 +269,33 @@ describe('ExtendedTransferQueryService', () => {
       expect(result1).toHaveProperty('tps');
       expect(result2).toHaveProperty('tps');
     });
+
+    it('should return gas price in expected format', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result.averageGasPrice).toMatch(/^\d+\s*(gwei|wei|eth)$/i);
+    });
+
+    it('should return market cap in expected format', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result.marketCap).toMatch(/^\$[\d.]+[BMK]?$/);
+    });
+
+    it('should handle multiple concurrent calls', async () => {
+      const [result1, result2, result3] = await Promise.all([
+        ExtendedTransferQueryService.getStats(),
+        ExtendedTransferQueryService.getStats(),
+        ExtendedTransferQueryService.getStats(),
+      ]);
+
+      expect(result1).toBeDefined();
+      expect(result2).toBeDefined();
+      expect(result3).toBeDefined();
+      expect(result1.tps).toBeDefined();
+      expect(result2.tps).toBeDefined();
+      expect(result3.tps).toBeDefined();
+    });
   });
 
   describe('Integration tests', () => {
