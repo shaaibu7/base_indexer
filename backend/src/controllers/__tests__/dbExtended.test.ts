@@ -333,6 +333,35 @@ describe('ExtendedTransferQueryService', () => {
       expect(result1[0]).toHaveProperty('id');
       expect(result2[0]).toHaveProperty('id');
     });
+
+    it('should work with getStats in integration scenario', async () => {
+      const [transfers, blocks, addresses, stats] = await Promise.all([
+        ExtendedTransferQueryService.getRecentTransfers({ limit: 3 }),
+        ExtendedTransferQueryService.getRecentBlocks({ limit: 3 }),
+        ExtendedTransferQueryService.getTopAddresses({ limit: 3 }),
+        ExtendedTransferQueryService.getStats(),
+      ]);
+
+      expect(transfers).toBeDefined();
+      expect(blocks).toBeDefined();
+      expect(addresses).toBeDefined();
+      expect(stats).toBeDefined();
+      expect(stats).toHaveProperty('tps');
+      expect(stats).toHaveProperty('totalTransactions');
+    });
+
+    it('should handle all four methods in sequence', async () => {
+      const transfers = await ExtendedTransferQueryService.getRecentTransfers({ limit: 2 });
+      const blocks = await ExtendedTransferQueryService.getRecentBlocks({ limit: 2 });
+      const addresses = await ExtendedTransferQueryService.getTopAddresses({ limit: 2 });
+      const stats = await ExtendedTransferQueryService.getStats();
+
+      expect(Array.isArray(transfers)).toBe(true);
+      expect(Array.isArray(blocks)).toBe(true);
+      expect(Array.isArray(addresses)).toBe(true);
+      expect(typeof stats).toBe('object');
+      expect(stats.tps).toBeGreaterThanOrEqual(0);
+    });
   });
 });
 
