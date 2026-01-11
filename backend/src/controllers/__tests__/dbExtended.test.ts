@@ -232,6 +232,45 @@ describe('ExtendedTransferQueryService', () => {
     });
   });
 
+  describe('getStats', () => {
+    it('should return network statistics with all required fields', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result).toHaveProperty('tps');
+      expect(result).toHaveProperty('activeAddresses');
+      expect(result).toHaveProperty('totalTransactions');
+      expect(result).toHaveProperty('averageGasPrice');
+      expect(result).toHaveProperty('marketCap');
+    });
+
+    it('should return valid data types for all fields', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(typeof result.tps).toBe('number');
+      expect(typeof result.activeAddresses).toBe('number');
+      expect(typeof result.totalTransactions).toBe('number');
+      expect(typeof result.averageGasPrice).toBe('string');
+      expect(typeof result.marketCap).toBe('string');
+    });
+
+    it('should return non-negative numeric values', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result.tps).toBeGreaterThanOrEqual(0);
+      expect(result.activeAddresses).toBeGreaterThanOrEqual(0);
+      expect(result.totalTransactions).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return consistent structure across multiple calls', async () => {
+      const result1 = await ExtendedTransferQueryService.getStats();
+      const result2 = await ExtendedTransferQueryService.getStats();
+
+      expect(Object.keys(result1)).toEqual(Object.keys(result2));
+      expect(result1).toHaveProperty('tps');
+      expect(result2).toHaveProperty('tps');
+    });
+  });
+
   describe('Integration tests', () => {
     it('should work with all three methods sequentially', async () => {
       const transfers = await ExtendedTransferQueryService.getRecentTransfers({ limit: 5 });
