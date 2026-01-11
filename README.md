@@ -98,3 +98,10 @@ npm run start
 6. dotenv
 
 
+
+## New Architecture Updates
+- **Structured Logging**: Using Winston for backend logs.
+- **API Client**: Centralized Axios instance with interceptors.
+- **Validation**: Zod schema validation for environment variables.
+- **Security**: Helmet middleware enabled.
+- **UI**: Added Toast notifications and Error Boundaries.
