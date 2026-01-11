@@ -24,6 +24,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api', apiRoutes);
 app.use('/indexer', aiRouter);
 
+app.get("/health", (req, res) => res.status(200).json({ status: "ok", uptime: process.uptime() }));
+
 // Base Route
 app.get('/', (req, res) => {
   res.json({ message: 'ERC-20 Transfer Indexer API', version: '1.0.0' });
