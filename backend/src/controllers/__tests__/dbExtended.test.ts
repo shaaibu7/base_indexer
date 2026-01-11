@@ -1,12 +1,166 @@
 import ExtendedTransferQueryService from '../dbExtended';
+import TransferQueryService from '../db';
 import TransferEvent from '../../models/TransferEvent';
+import { Op } from 'sequelize';
 
-// Mock the TransferEvent model
+// Mock the TransferEvent model and TransferQueryService
 jest.mock('../../models/TransferEvent');
+jest.mock('../db');
 
 describe('ExtendedTransferQueryService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('Re-exported methods from TransferQueryService', () => {
+    describe('getTransfersByAddress', () => {
+      it('should call TransferQueryService.getTransfersByAddress', async () => {
+        const mockTransfers = [
+          { id: 1, from: '0x123', to: '0x456', value: '1000' },
+        ];
+        (TransferQueryService.getTransfersByAddress as jest.Mock).mockResolvedValue(
+          mockTransfers
+        );
+
+        const result = await ExtendedTransferQueryService.getTransfersByAddress(
+          '0x123'
+        );
+
+        expect(TransferQueryService.getTransfersByAddress).toHaveBeenCalledWith(
+          '0x123',
+          {}
+        );
+        expect(result).toEqual(mockTransfers);
+      });
+
+      it('should pass options to TransferQueryService', async () => {
+        const options = { limit: 50, offset: 10, sortBy: 'blockNumber' };
+        (TransferQueryService.getTransfersByAddress as jest.Mock).mockResolvedValue(
+          []
+        );
+
+        await ExtendedTransferQueryService.getTransfersByAddress('0x123', options);
+
+        expect(TransferQueryService.getTransfersByAddress).toHaveBeenCalledWith(
+          '0x123',
+          options
+        );
+      });
+    });
+
+    describe('getTransfersFrom', () => {
+      it('should call TransferQueryService.getTransfersFrom', async () => {
+        const mockTransfers = [
+          { id: 1, from: '0x123', to: '0x456', value: '1000' },
+        ];
+        (TransferQueryService.getTransfersFrom as jest.Mock).mockResolvedValue(
+          mockTransfers
+        );
+
+        const result = await ExtendedTransferQueryService.getTransfersFrom('0x123');
+
+        expect(TransferQueryService.getTransfersFrom).toHaveBeenCalledWith(
+          '0x123',
+          {}
+        );
+        expect(result).toEqual(mockTransfers);
+      });
+    });
+
+    describe('getTransfersTo', () => {
+      it('should call TransferQueryService.getTransfersTo', async () => {
+        const mockTransfers = [
+          { id: 1, from: '0x456', to: '0x123', value: '1000' },
+        ];
+        (TransferQueryService.getTransfersTo as jest.Mock).mockResolvedValue(
+          mockTransfers
+        );
+
+        const result = await ExtendedTransferQueryService.getTransfersTo('0x123');
+
+        expect(TransferQueryService.getTransfersTo).toHaveBeenCalledWith(
+          '0x123',
+          {}
+        );
+        expect(result).toEqual(mockTransfers);
+      });
+    });
+
+    describe('getTransfersByToken', () => {
+      it('should call TransferQueryService.getTransfersByToken', async () => {
+        const mockTransfers = [
+          { id: 1, tokenAddress: '0xtoken', from: '0x123', to: '0x456', value: '1000' },
+        ];
+        (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue(
+          mockTransfers
+        );
+
+        const result = await ExtendedTransferQueryService.getTransfersByToken('0xtoken');
+
+        expect(TransferQueryService.getTransfersByToken).toHaveBeenCalledWith(
+          '0xtoken',
+          {}
+        );
+        expect(result).toEqual(mockTransfers);
+      });
+
+      it('should pass options to TransferQueryService', async () => {
+        const options = { limit: 25, sortBy: 'value' };
+        (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue([]);
+
+        await ExtendedTransferQueryService.getTransfersByToken('0xtoken', options);
+
+        expect(TransferQueryService.getTransfersByToken).toHaveBeenCalledWith(
+          '0xtoken',
+          options
+        );
+      });
+    });
+
+    describe('getTransfersByAddressAndToken', () => {
+      it('should call TransferQueryService.getTransfersByAddressAndToken', async () => {
+        const mockTransfers = [
+          {
+            id: 1,
+            from: '0x123',
+            to: '0x456',
+            tokenAddress: '0xtoken',
+            value: '1000',
+          },
+        ];
+        (
+          TransferQueryService.getTransfersByAddressAndToken as jest.Mock
+        ).mockResolvedValue(mockTransfers);
+
+        const result =
+          await ExtendedTransferQueryService.getTransfersByAddressAndToken(
+            '0x123',
+            '0xtoken'
+          );
+
+        expect(
+          TransferQueryService.getTransfersByAddressAndToken
+        ).toHaveBeenCalledWith('0x123', '0xtoken', {});
+        expect(result).toEqual(mockTransfers);
+      });
+
+      it('should pass options to TransferQueryService', async () => {
+        const options = { limit: 30, offset: 5 };
+        (
+          TransferQueryService.getTransfersByAddressAndToken as jest.Mock
+        ).mockResolvedValue([]);
+
+        await ExtendedTransferQueryService.getTransfersByAddressAndToken(
+          '0x123',
+          '0xtoken',
+          options
+        );
+
+        expect(
+          TransferQueryService.getTransfersByAddressAndToken
+        ).toHaveBeenCalledWith('0x123', '0xtoken', options);
+      });
+    });
   });
 
   describe('getRecentTransfers', () => {
@@ -232,6 +386,72 @@ describe('ExtendedTransferQueryService', () => {
     });
   });
 
+  describe('getStats', () => {
+    it('should return network statistics with all required fields', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result).toHaveProperty('tps');
+      expect(result).toHaveProperty('activeAddresses');
+      expect(result).toHaveProperty('totalTransactions');
+      expect(result).toHaveProperty('averageGasPrice');
+      expect(result).toHaveProperty('marketCap');
+    });
+
+    it('should return valid data types for all fields', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(typeof result.tps).toBe('number');
+      expect(typeof result.activeAddresses).toBe('number');
+      expect(typeof result.totalTransactions).toBe('number');
+      expect(typeof result.averageGasPrice).toBe('string');
+      expect(typeof result.marketCap).toBe('string');
+    });
+
+    it('should return non-negative numeric values', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result.tps).toBeGreaterThanOrEqual(0);
+      expect(result.activeAddresses).toBeGreaterThanOrEqual(0);
+      expect(result.totalTransactions).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should return consistent structure across multiple calls', async () => {
+      const result1 = await ExtendedTransferQueryService.getStats();
+      const result2 = await ExtendedTransferQueryService.getStats();
+
+      expect(Object.keys(result1)).toEqual(Object.keys(result2));
+      expect(result1).toHaveProperty('tps');
+      expect(result2).toHaveProperty('tps');
+    });
+
+    it('should return gas price in expected format', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result.averageGasPrice).toMatch(/^\d+\s*(gwei|wei|eth)$/i);
+    });
+
+    it('should return market cap in expected format', async () => {
+      const result = await ExtendedTransferQueryService.getStats();
+
+      expect(result.marketCap).toMatch(/^\$[\d.]+[BMK]?$/);
+    });
+
+    it('should handle multiple concurrent calls', async () => {
+      const [result1, result2, result3] = await Promise.all([
+        ExtendedTransferQueryService.getStats(),
+        ExtendedTransferQueryService.getStats(),
+        ExtendedTransferQueryService.getStats(),
+      ]);
+
+      expect(result1).toBeDefined();
+      expect(result2).toBeDefined();
+      expect(result3).toBeDefined();
+      expect(result1.tps).toBeDefined();
+      expect(result2.tps).toBeDefined();
+      expect(result3.tps).toBeDefined();
+    });
+  });
+
   describe('Integration tests', () => {
     it('should work with all three methods sequentially', async () => {
       const transfers = await ExtendedTransferQueryService.getRecentTransfers({ limit: 5 });
@@ -266,6 +486,101 @@ describe('ExtendedTransferQueryService', () => {
       expect(result1.length).toBe(result2.length);
       expect(result1[0]).toHaveProperty('id');
       expect(result2[0]).toHaveProperty('id');
+    });
+
+    it('should work with getStats in integration scenario', async () => {
+      const [transfers, blocks, addresses, stats] = await Promise.all([
+        ExtendedTransferQueryService.getRecentTransfers({ limit: 3 }),
+        ExtendedTransferQueryService.getRecentBlocks({ limit: 3 }),
+        ExtendedTransferQueryService.getTopAddresses({ limit: 3 }),
+        ExtendedTransferQueryService.getStats(),
+      ]);
+
+      expect(transfers).toBeDefined();
+      expect(blocks).toBeDefined();
+      expect(addresses).toBeDefined();
+      expect(stats).toBeDefined();
+      expect(stats).toHaveProperty('tps');
+      expect(stats).toHaveProperty('totalTransactions');
+    });
+
+    it('should handle all four methods in sequence', async () => {
+      const transfers = await ExtendedTransferQueryService.getRecentTransfers({ limit: 2 });
+      const blocks = await ExtendedTransferQueryService.getRecentBlocks({ limit: 2 });
+      const addresses = await ExtendedTransferQueryService.getTopAddresses({ limit: 2 });
+      const stats = await ExtendedTransferQueryService.getStats();
+
+      expect(Array.isArray(transfers)).toBe(true);
+      expect(Array.isArray(blocks)).toBe(true);
+      expect(Array.isArray(addresses)).toBe(true);
+      expect(typeof stats).toBe('object');
+      expect(stats.tps).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should work with re-exported methods and new methods together', async () => {
+      (TransferQueryService.getTransfersByAddress as jest.Mock).mockResolvedValue([]);
+      (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue([]);
+
+      const [byAddress, byToken, recent, blocks] = await Promise.all([
+        ExtendedTransferQueryService.getTransfersByAddress('0x123'),
+        ExtendedTransferQueryService.getTransfersByToken('0xtoken'),
+        ExtendedTransferQueryService.getRecentTransfers({ limit: 2 }),
+        ExtendedTransferQueryService.getRecentBlocks({ limit: 2 }),
+      ]);
+
+      expect(byAddress).toBeDefined();
+      expect(byToken).toBeDefined();
+      expect(Array.isArray(recent)).toBe(true);
+      expect(Array.isArray(blocks)).toBe(true);
+    });
+
+    it('should handle complex workflow with all method types', async () => {
+      (TransferQueryService.getTransfersByAddress as jest.Mock).mockResolvedValue([
+        { id: 1, from: '0x123', to: '0x456', value: '1000' },
+      ]);
+      (TransferQueryService.getTransfersFrom as jest.Mock).mockResolvedValue([]);
+      (TransferQueryService.getTransfersTo as jest.Mock).mockResolvedValue([]);
+      (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue([]);
+      (
+        TransferQueryService.getTransfersByAddressAndToken as jest.Mock
+      ).mockResolvedValue([]);
+
+      const workflow = async () => {
+        const stats = await ExtendedTransferQueryService.getStats();
+        const transfers = await ExtendedTransferQueryService.getRecentTransfers({ limit: 5 });
+        const blocks = await ExtendedTransferQueryService.getRecentBlocks({ limit: 5 });
+        const addresses = await ExtendedTransferQueryService.getTopAddresses({ limit: 5 });
+        const byAddress = await ExtendedTransferQueryService.getTransfersByAddress('0x123');
+        const from = await ExtendedTransferQueryService.getTransfersFrom('0x123');
+        const to = await ExtendedTransferQueryService.getTransfersTo('0x123');
+        const byToken = await ExtendedTransferQueryService.getTransfersByToken('0xtoken');
+        const byAddressAndToken =
+          await ExtendedTransferQueryService.getTransfersByAddressAndToken('0x123', '0xtoken');
+
+        return {
+          stats,
+          transfers,
+          blocks,
+          addresses,
+          byAddress,
+          from,
+          to,
+          byToken,
+          byAddressAndToken,
+        };
+      };
+
+      const results = await workflow();
+
+      expect(results.stats).toHaveProperty('tps');
+      expect(Array.isArray(results.transfers)).toBe(true);
+      expect(Array.isArray(results.blocks)).toBe(true);
+      expect(Array.isArray(results.addresses)).toBe(true);
+      expect(Array.isArray(results.byAddress)).toBe(true);
+      expect(Array.isArray(results.from)).toBe(true);
+      expect(Array.isArray(results.to)).toBe(true);
+      expect(Array.isArray(results.byToken)).toBe(true);
+      expect(Array.isArray(results.byAddressAndToken)).toBe(true);
     });
   });
 });
