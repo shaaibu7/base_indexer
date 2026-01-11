@@ -85,6 +85,82 @@ describe('ExtendedTransferQueryService', () => {
         expect(result).toEqual(mockTransfers);
       });
     });
+
+    describe('getTransfersByToken', () => {
+      it('should call TransferQueryService.getTransfersByToken', async () => {
+        const mockTransfers = [
+          { id: 1, tokenAddress: '0xtoken', from: '0x123', to: '0x456', value: '1000' },
+        ];
+        (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue(
+          mockTransfers
+        );
+
+        const result = await ExtendedTransferQueryService.getTransfersByToken('0xtoken');
+
+        expect(TransferQueryService.getTransfersByToken).toHaveBeenCalledWith(
+          '0xtoken',
+          {}
+        );
+        expect(result).toEqual(mockTransfers);
+      });
+
+      it('should pass options to TransferQueryService', async () => {
+        const options = { limit: 25, sortBy: 'value' };
+        (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue([]);
+
+        await ExtendedTransferQueryService.getTransfersByToken('0xtoken', options);
+
+        expect(TransferQueryService.getTransfersByToken).toHaveBeenCalledWith(
+          '0xtoken',
+          options
+        );
+      });
+    });
+
+    describe('getTransfersByAddressAndToken', () => {
+      it('should call TransferQueryService.getTransfersByAddressAndToken', async () => {
+        const mockTransfers = [
+          {
+            id: 1,
+            from: '0x123',
+            to: '0x456',
+            tokenAddress: '0xtoken',
+            value: '1000',
+          },
+        ];
+        (
+          TransferQueryService.getTransfersByAddressAndToken as jest.Mock
+        ).mockResolvedValue(mockTransfers);
+
+        const result =
+          await ExtendedTransferQueryService.getTransfersByAddressAndToken(
+            '0x123',
+            '0xtoken'
+          );
+
+        expect(
+          TransferQueryService.getTransfersByAddressAndToken
+        ).toHaveBeenCalledWith('0x123', '0xtoken', {});
+        expect(result).toEqual(mockTransfers);
+      });
+
+      it('should pass options to TransferQueryService', async () => {
+        const options = { limit: 30, offset: 5 };
+        (
+          TransferQueryService.getTransfersByAddressAndToken as jest.Mock
+        ).mockResolvedValue([]);
+
+        await ExtendedTransferQueryService.getTransfersByAddressAndToken(
+          '0x123',
+          '0xtoken',
+          options
+        );
+
+        expect(
+          TransferQueryService.getTransfersByAddressAndToken
+        ).toHaveBeenCalledWith('0x123', '0xtoken', options);
+      });
+    });
   });
 
   describe('getRecentTransfers', () => {
