@@ -516,6 +516,72 @@ describe('ExtendedTransferQueryService', () => {
       expect(typeof stats).toBe('object');
       expect(stats.tps).toBeGreaterThanOrEqual(0);
     });
+
+    it('should work with re-exported methods and new methods together', async () => {
+      (TransferQueryService.getTransfersByAddress as jest.Mock).mockResolvedValue([]);
+      (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue([]);
+
+      const [byAddress, byToken, recent, blocks] = await Promise.all([
+        ExtendedTransferQueryService.getTransfersByAddress('0x123'),
+        ExtendedTransferQueryService.getTransfersByToken('0xtoken'),
+        ExtendedTransferQueryService.getRecentTransfers({ limit: 2 }),
+        ExtendedTransferQueryService.getRecentBlocks({ limit: 2 }),
+      ]);
+
+      expect(byAddress).toBeDefined();
+      expect(byToken).toBeDefined();
+      expect(Array.isArray(recent)).toBe(true);
+      expect(Array.isArray(blocks)).toBe(true);
+    });
+
+    it('should handle complex workflow with all method types', async () => {
+      (TransferQueryService.getTransfersByAddress as jest.Mock).mockResolvedValue([
+        { id: 1, from: '0x123', to: '0x456', value: '1000' },
+      ]);
+      (TransferQueryService.getTransfersFrom as jest.Mock).mockResolvedValue([]);
+      (TransferQueryService.getTransfersTo as jest.Mock).mockResolvedValue([]);
+      (TransferQueryService.getTransfersByToken as jest.Mock).mockResolvedValue([]);
+      (
+        TransferQueryService.getTransfersByAddressAndToken as jest.Mock
+      ).mockResolvedValue([]);
+
+      const workflow = async () => {
+        const stats = await ExtendedTransferQueryService.getStats();
+        const transfers = await ExtendedTransferQueryService.getRecentTransfers({ limit: 5 });
+        const blocks = await ExtendedTransferQueryService.getRecentBlocks({ limit: 5 });
+        const addresses = await ExtendedTransferQueryService.getTopAddresses({ limit: 5 });
+        const byAddress = await ExtendedTransferQueryService.getTransfersByAddress('0x123');
+        const from = await ExtendedTransferQueryService.getTransfersFrom('0x123');
+        const to = await ExtendedTransferQueryService.getTransfersTo('0x123');
+        const byToken = await ExtendedTransferQueryService.getTransfersByToken('0xtoken');
+        const byAddressAndToken =
+          await ExtendedTransferQueryService.getTransfersByAddressAndToken('0x123', '0xtoken');
+
+        return {
+          stats,
+          transfers,
+          blocks,
+          addresses,
+          byAddress,
+          from,
+          to,
+          byToken,
+          byAddressAndToken,
+        };
+      };
+
+      const results = await workflow();
+
+      expect(results.stats).toHaveProperty('tps');
+      expect(Array.isArray(results.transfers)).toBe(true);
+      expect(Array.isArray(results.blocks)).toBe(true);
+      expect(Array.isArray(results.addresses)).toBe(true);
+      expect(Array.isArray(results.byAddress)).toBe(true);
+      expect(Array.isArray(results.from)).toBe(true);
+      expect(Array.isArray(results.to)).toBe(true);
+      expect(Array.isArray(results.byToken)).toBe(true);
+      expect(Array.isArray(results.byAddressAndToken)).toBe(true);
+    });
   });
 });
 
