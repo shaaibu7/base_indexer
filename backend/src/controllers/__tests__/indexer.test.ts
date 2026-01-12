@@ -87,4 +87,22 @@ describe('Indexer Controller', () => {
       await expect(listenForTransferEvents()).rejects.toThrow('Database connection failed');
     });
   });
+
+  describe('Event Subscription Setup', () => {
+    it('should set up logs subscription with correct filter', async () => {
+      await listenForTransferEvents();
+      
+      expect(mockWeb3Instance.eth.subscribe).toHaveBeenCalledWith('logs', {
+        topics: ['0x123456789abcdef'],
+      });
+    });
+
+    it('should configure subscription event handlers', async () => {
+      await listenForTransferEvents();
+      
+      expect(mockSubscription.on).toHaveBeenCalledWith('data', expect.any(Function));
+      expect(mockSubscription.on).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockSubscription.on).toHaveBeenCalledWith('connected', expect.any(Function));
+    });
+  });
 });
