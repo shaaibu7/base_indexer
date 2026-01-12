@@ -376,5 +376,55 @@ describe('Indexer Controller', () => {
       process.exit = originalExit;
     });
   });
+
+  describe('Integration Tests', () => {
+    it('should complete full initialization flow', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      await listenForTransferEvents();
+      
+      expect(sequelize.authenticate).toHaveBeenCalled();
+      expect(mockWeb3Instance.eth.subscribe).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith('Transfer event listener is now running!');
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle complete event processing workflow', async () => {
+      await listenForTransferEvents();
+      const dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+      
+      const mockEventData = {
+        topics: ['0x123456789abcdef', '0x123', '0x456'],
+        data: '0x789',
+        address: '0xtoken',
+        blockNumber: 54321
+      };
+
+      mockWeb3Instance.eth.abi.decodeParameter
+        .mockReturnValueOnce('0xsender')
+        .mockReturnValueOnce('0xreceiver')
+        .mockReturnValueOnce('5000000000000000000');
+
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).toHaveBeenCalledWith({
+        from: '0xsender',
+        to: '0xreceiver',
+        value: '5000000000000000000',
+        tokenAddress: '0xtoken',
+        blockNumber: 54321,
+        timestamp: expect.any(Date),
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'New ERC-20 Transfer: 0xsender -> 0xreceiver, Value: 5000000000000000000, Token: 0xtoken'
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
   });
 });
