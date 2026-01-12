@@ -426,5 +426,53 @@ describe('Indexer Controller', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('Edge Cases', () => {
+    it('should handle null or undefined event data', async () => {
+      await listenForTransferEvents();
+      const dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+      
+      await dataHandler(null);
+      await dataHandler(undefined);
+      
+      expect(TransferEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing event properties', async () => {
+      await listenForTransferEvents();
+      const dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+      
+      const incompleteEvent = {
+        topics: ['0x123456789abcdef', '0x123', '0x456'],
+        // Missing data, address, blockNumber
+      };
+      
+      await dataHandler(incompleteEvent);
+      
+      expect(TransferEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle very large block numbers', async () => {
+      await listenForTransferEvents();
+      const dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+      
+      const mockEventData = {
+        topics: ['0x123456789abcdef', '0x123', '0x456'],
+        data: '0x789',
+        address: '0xtoken',
+        blockNumber: 999999999999999
+      };
+
+      mockWeb3Instance.eth.abi.decodeParameter
+        .mockReturnValueOnce('0xfrom')
+        .mockReturnValueOnce('0xto')
+        .mockReturnValueOnce('1000');
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({ blockNumber: 999999999999999 })
+      );
+    });
   });
 });
