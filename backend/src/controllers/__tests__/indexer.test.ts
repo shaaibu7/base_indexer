@@ -227,5 +227,58 @@ describe('Indexer Controller', () => {
         expect.objectContaining({ value: '2000000000000000000' })
       );
     });
+
+    it('should handle numeric value types', async () => {
+      const mockEventData = {
+        topics: ['0x123456789abcdef', '0x123', '0x456'],
+        data: '0x789',
+        address: '0xabc',
+        blockNumber: 12345
+      };
+
+      mockWeb3Instance.eth.abi.decodeParameter
+        .mockReturnValueOnce('0xfrom')
+        .mockReturnValueOnce('0xto')
+        .mockReturnValueOnce(123456789);
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({ value: '123456789' })
+      );
+    });
+  });
+
+  describe('Graceful Shutdown', () => {
+    it('should close database connection on SIGINT', async () => {
+      const originalExit = process.exit;
+      process.exit = jest.fn() as any;
+
+      // Trigger SIGINT
+      process.emit('SIGINT' as any);
+
+      // Wait for async operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(sequelize.close).toHaveBeenCalled();
+      
+      process.exit = originalExit;
+    });
+
+    it('should attempt to close WebSocket connection on SIGINT', async () => {
+      const originalExit = process.exit;
+      process.exit = jest.fn() as any;
+
+      // Trigger SIGINT
+      process.emit('SIGINT' as any);
+
+      // Wait for async operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(mockProvider.disconnect).toHaveBeenCalled();
+      
+      process.exit = originalExit;
+    });
+  });
   });
 });
