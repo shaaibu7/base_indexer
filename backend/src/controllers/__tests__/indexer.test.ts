@@ -105,4 +105,42 @@ describe('Indexer Controller', () => {
       expect(mockSubscription.on).toHaveBeenCalledWith('connected', expect.any(Function));
     });
   });
+
+  describe('Transfer Event Processing', () => {
+    let dataHandler: Function;
+
+    beforeEach(async () => {
+      await listenForTransferEvents();
+      dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+    });
+
+    it('should process valid transfer event data', async () => {
+      const mockEventData = {
+        topics: [
+          '0x123456789abcdef',
+          '0x000000000000000000000000abcdef1234567890abcdef1234567890abcdef12',
+          '0x000000000000000000000000fedcba0987654321fedcba0987654321fedcba09'
+        ],
+        data: '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        blockNumber: 12345
+      };
+
+      mockWeb3Instance.eth.abi.decodeParameter
+        .mockReturnValueOnce('0xabcdef1234567890abcdef1234567890abcdef12')
+        .mockReturnValueOnce('0xfedcba0987654321fedcba0987654321fedcba09')
+        .mockReturnValueOnce('1000000000000000000');
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).toHaveBeenCalledWith({
+        from: '0xabcdef1234567890abcdef1234567890abcdef12',
+        to: '0xfedcba0987654321fedcba0987654321fedcba09',
+        value: '1000000000000000000',
+        tokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        blockNumber: 12345,
+        timestamp: expect.any(Date),
+      });
+    });
+  });
 });
