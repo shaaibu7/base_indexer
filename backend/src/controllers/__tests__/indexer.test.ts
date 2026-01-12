@@ -142,5 +142,39 @@ describe('Indexer Controller', () => {
         timestamp: expect.any(Date),
       });
     });
+
+    it('should handle events with insufficient topics', async () => {
+      const mockEventData = {
+        topics: ['0x123456789abcdef'], // Missing from/to topics
+        data: '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        blockNumber: 12345
+      };
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle event processing errors gracefully', async () => {
+      const mockEventData = {
+        topics: [
+          '0x123456789abcdef',
+          '0x000000000000000000000000abcdef1234567890abcdef1234567890abcdef12',
+          '0x000000000000000000000000fedcba0987654321fedcba0987654321fedcba09'
+        ],
+        data: '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000',
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        blockNumber: 12345
+      };
+
+      mockWeb3Instance.eth.abi.decodeParameter.mockImplementation(() => {
+        throw new Error('Decode error');
+      });
+
+      // Should not throw
+      await expect(dataHandler(mockEventData)).resolves.toBeUndefined();
+      expect(TransferEvent.create).not.toHaveBeenCalled();
+    });
   });
 });
