@@ -328,5 +328,53 @@ describe('Indexer Controller', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('Error Scenarios', () => {
+    it('should handle subscription setup failure', async () => {
+      mockWeb3Instance.eth.subscribe.mockRejectedValue(new Error('Subscription failed'));
+      
+      jest.useFakeTimers();
+      
+      await listenForTransferEvents();
+      
+      // Fast-forward time to trigger reconnection
+      jest.advanceTimersByTime(10000);
+      
+      // Should attempt reconnection
+      expect(Web3).toHaveBeenCalledTimes(2);
+      
+      jest.useRealTimers();
+    });
+
+    it('should handle provider connection errors', () => {
+      const errorHandler = mockProvider.on.mock.calls.find(call => call[0] === 'error')[1];
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      errorHandler(new Error('Provider error'));
+      
+      expect(consoleSpy).toHaveBeenCalledWith('WebSocket error:', expect.any(Error));
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle database close errors during shutdown', async () => {
+      const originalExit = process.exit;
+      process.exit = jest.fn() as any;
+      
+      (sequelize.close as jest.Mock).mockRejectedValue(new Error('Close error'));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Trigger SIGINT
+      process.emit('SIGINT' as any);
+      
+      // Wait for async operations
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Error closing database connection:', expect.any(Error));
+      
+      consoleSpy.mockRestore();
+      process.exit = originalExit;
+    });
+  });
   });
 });
