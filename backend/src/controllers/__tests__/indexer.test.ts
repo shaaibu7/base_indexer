@@ -280,5 +280,53 @@ describe('Indexer Controller', () => {
       process.exit = originalExit;
     });
   });
+
+  describe('Reconnection Logic', () => {
+    it('should handle WebSocket end event with reconnection', () => {
+      const endHandler = mockProvider.on.mock.calls.find(call => call[0] === 'end')[1];
+      
+      jest.useFakeTimers();
+      endHandler();
+      
+      // Fast-forward time
+      jest.advanceTimersByTime(5000);
+      
+      // Should create new Web3 instance
+      expect(Web3).toHaveBeenCalledTimes(2);
+      
+      jest.useRealTimers();
+    });
+
+    it('should handle subscription errors with reconnection', async () => {
+      await listenForTransferEvents();
+      const errorHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'error')[1];
+      
+      jest.useFakeTimers();
+      errorHandler(new Error('Subscription error'));
+      
+      // Fast-forward time
+      jest.advanceTimersByTime(10000);
+      
+      // Should create new Web3 instance
+      expect(Web3).toHaveBeenCalledTimes(2);
+      
+      jest.useRealTimers();
+    });
+  });
+
+  describe('Subscription Connection', () => {
+    it('should log subscription ID when connected', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      await listenForTransferEvents();
+      const connectedHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'connected')[1];
+      
+      connectedHandler('test-subscription-id');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Subscription connected with ID: test-subscription-id');
+      
+      consoleSpy.mockRestore();
+    });
+  });
   });
 });
