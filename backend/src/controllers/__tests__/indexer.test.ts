@@ -177,4 +177,55 @@ describe('Indexer Controller', () => {
       expect(TransferEvent.create).not.toHaveBeenCalled();
     });
   });
+
+  describe('Value Type Handling', () => {
+    let dataHandler: Function;
+
+    beforeEach(async () => {
+      await listenForTransferEvents();
+      dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+    });
+
+    it('should handle string value types', async () => {
+      const mockEventData = {
+        topics: ['0x123456789abcdef', '0x123', '0x456'],
+        data: '0x789',
+        address: '0xabc',
+        blockNumber: 12345
+      };
+
+      mockWeb3Instance.eth.abi.decodeParameter
+        .mockReturnValueOnce('0xfrom')
+        .mockReturnValueOnce('0xto')
+        .mockReturnValueOnce('1000000000000000000'); // string
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({ value: '1000000000000000000' })
+      );
+    });
+
+    it('should handle object value types with toString method', async () => {
+      const mockEventData = {
+        topics: ['0x123456789abcdef', '0x123', '0x456'],
+        data: '0x789',
+        address: '0xabc',
+        blockNumber: 12345
+      };
+
+      const mockBigNumber = { toString: () => '2000000000000000000' };
+
+      mockWeb3Instance.eth.abi.decodeParameter
+        .mockReturnValueOnce('0xfrom')
+        .mockReturnValueOnce('0xto')
+        .mockReturnValueOnce(mockBigNumber);
+
+      await dataHandler(mockEventData);
+
+      expect(TransferEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({ value: '2000000000000000000' })
+      );
+    });
+  });
 });
