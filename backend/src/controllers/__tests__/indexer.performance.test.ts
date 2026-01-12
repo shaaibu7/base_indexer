@@ -1,7 +1,9 @@
 import { createMockTransferEvent, createMockWeb3Instance } from './indexer.helpers';
 import TransferEvent from '../../models/TransferEvent';
 import listenForTransferEvents from '../indexer';
+import Web3 from 'web3';
 
+jest.mock('web3');
 jest.mock('../../models/TransferEvent');
 jest.mock('../../config/sequilize');
 
@@ -18,6 +20,10 @@ describe('Indexer Performance Tests', () => {
 
     mockWeb3Instance = createMockWeb3Instance();
     mockWeb3Instance.eth.subscribe.mockResolvedValue(mockSubscription);
+
+    // Mock Web3 constructor
+    (Web3 as jest.MockedClass<typeof Web3>).mockImplementation(() => mockWeb3Instance);
+    (Web3.providers.WebsocketProvider as jest.Mock).mockImplementation(() => mockWeb3Instance.currentProvider);
 
     (TransferEvent.create as jest.Mock).mockResolvedValue({});
   });
