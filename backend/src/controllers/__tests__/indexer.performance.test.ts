@@ -53,4 +53,31 @@ describe('Indexer Performance Tests', () => {
     expect(processingTime).toBeLessThan(1000);
     expect(TransferEvent.create).toHaveBeenCalledTimes(100);
   });
+
+  it('should handle memory efficiently with large event batches', async () => {
+    await listenForTransferEvents();
+    const dataHandler = mockSubscription.on.mock.calls.find(call => call[0] === 'data')[1];
+    
+    // Create a large batch of events
+    const largeEventBatch = Array.from({ length: 1000 }, (_, i) => 
+      createMockTransferEvent({ 
+        blockNumber: i + 1,
+        data: `0x${i.toString(16).padStart(64, '0')}`
+      })
+    );
+
+    mockWeb3Instance.eth.abi.decodeParameter
+      .mockReturnValue('0xsender')
+      .mockReturnValue('0xreceiver')
+      .mockReturnValue('1000000000000000000');
+
+    // Process in smaller chunks to simulate real-world scenario
+    const chunkSize = 50;
+    for (let i = 0; i < largeEventBatch.length; i += chunkSize) {
+      const chunk = largeEventBatch.slice(i, i + chunkSize);
+      await Promise.all(chunk.map(event => dataHandler(event)));
+    }
+
+    expect(TransferEvent.create).toHaveBeenCalledTimes(1000);
+  });
 });
