@@ -60,5 +60,17 @@ describe('Indexer Controller', () => {
       expect(Web3.providers.WebsocketProvider).toHaveBeenCalledWith(process.env.INFURA_URL);
       expect(Web3).toHaveBeenCalledWith(mockProvider);
     });
+
+    it('should set up provider event listeners', () => {
+      expect(mockProvider.on).toHaveBeenCalledWith('connect', expect.any(Function));
+      expect(mockProvider.on).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockProvider.on).toHaveBeenCalledWith('end', expect.any(Function));
+    });
+  });
+
+  describe('Transfer Event Signature', () => {
+    it('should compute correct transfer event signature', () => {
+      expect(mockWeb3Instance.utils.sha3).toHaveBeenCalledWith('Transfer(address,address,uint256)');
+    });
   });
 });
