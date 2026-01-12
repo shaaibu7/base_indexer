@@ -73,4 +73,18 @@ describe('Indexer Controller', () => {
       expect(mockWeb3Instance.utils.sha3).toHaveBeenCalledWith('Transfer(address,address,uint256)');
     });
   });
+
+  describe('Database Connection', () => {
+    it('should authenticate database connection', async () => {
+      await listenForTransferEvents();
+      expect(sequelize.authenticate).toHaveBeenCalled();
+    });
+
+    it('should handle database connection errors', async () => {
+      const dbError = new Error('Database connection failed');
+      (sequelize.authenticate as jest.Mock).mockRejectedValue(dbError);
+      
+      await expect(listenForTransferEvents()).rejects.toThrow('Database connection failed');
+    });
+  });
 });
