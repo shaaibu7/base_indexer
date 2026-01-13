@@ -97,5 +97,20 @@ describe('createRun', () => {
     expect(mockRuns.retrieve).toHaveBeenCalledTimes(2);
     expect(result.status).toBe('completed');
   });
+
+  it('should handle failed run status', async () => {
+    const failedRun: Run = {
+      id: 'run_123',
+      status: 'failed',
+      thread_id: 'thread_123',
+    } as Run;
+
+    mockRuns.create.mockResolvedValue(failedRun);
+
+    const result = await createRun(mockClient, mockThread, 'asst_123');
+
+    expect(result.status).toBe('failed');
+    expect(mockRuns.retrieve).not.toHaveBeenCalled();
+  });
 });
 
