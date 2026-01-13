@@ -121,5 +121,49 @@ describe('performRun', () => {
 
     expect(result.text.value).toBe('Unknown error');
   });
+
+  it('should return assistant message for successful run', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'completed',
+      thread_id: 'thread_123',
+    } as Run;
+
+    const mockMessage = {
+      type: 'text',
+      text: { value: 'Assistant response', annotations: [] },
+    };
+
+    mockMessages.list.mockResolvedValue({
+      data: [
+        { role: 'assistant', content: [mockMessage] },
+        { role: 'user', content: [{ type: 'text', text: { value: 'User message' } }] },
+      ],
+    });
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(mockMessages.list).toHaveBeenCalledWith('thread_123');
+    expect(result).toEqual(mockMessage);
+  });
+
+  it('should return default message when no assistant message found', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'completed',
+      thread_id: 'thread_123',
+    } as Run;
+
+    mockMessages.list.mockResolvedValue({
+      data: [{ role: 'user', content: [{ type: 'text', text: { value: 'User message' } }] }],
+    });
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(result).toEqual({
+      type: 'text',
+      text: { value: 'No response from assistant', annotations: [] },
+    });
+  });
 });
 
