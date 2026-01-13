@@ -112,5 +112,31 @@ describe('createRun', () => {
     expect(result.status).toBe('failed');
     expect(mockRuns.retrieve).not.toHaveBeenCalled();
   });
+
+  it('should handle errors during run creation', async () => {
+    const error = new Error('Failed to create run');
+    mockRuns.create.mockRejectedValue(error);
+
+    await expect(
+      createRun(mockClient, mockThread, 'asst_123')
+    ).rejects.toThrow('Failed to create run');
+  });
+
+  it('should handle errors during run retrieval', async () => {
+    const queuedRun: Run = {
+      id: 'run_123',
+      status: 'queued',
+      thread_id: 'thread_123',
+    } as Run;
+
+    const error = new Error('Failed to retrieve run');
+    mockRuns.create.mockResolvedValue(queuedRun);
+    mockRuns.retrieve.mockRejectedValue(error);
+
+    const resultPromise = createRun(mockClient, mockThread, 'asst_123');
+    await jest.advanceTimersByTimeAsync(1000);
+
+    await expect(resultPromise).rejects.toThrow('Failed to retrieve run');
+  });
 });
 
