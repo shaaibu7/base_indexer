@@ -39,5 +39,51 @@ describe('performRun', () => {
 
     (OpenAI as jest.MockedClass<typeof OpenAI>).mockImplementation(() => mockClient);
   });
+
+  it('should handle requires_action status with tool calls', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'requires_action',
+      thread_id: 'thread_123',
+      required_action: {
+        type: 'submit_tool_outputs',
+        submit_tool_outputs: {
+          tool_calls: [
+            { id: 'call_1', type: 'function', function: { name: 'test', arguments: '{}' } },
+            { id: 'call_2', type: 'function', function: { name: 'test2', arguments: '{}' } },
+          ],
+        },
+      },
+    } as any;
+
+    const completedRun: Run = {
+      id: 'run_123',
+      status: 'completed',
+      thread_id: 'thread_123',
+    } as Run;
+
+    mockRuns.submitToolOutputsAndPoll.mockResolvedValue(completedRun);
+    mockMessages.list.mockResolvedValue({
+      data: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: { value: 'Response', annotations: [] } }],
+        },
+      ],
+    });
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(mockRuns.submitToolOutputsAndPoll).toHaveBeenCalledWith(
+      'thread_123',
+      'run_123',
+      {
+        tool_outputs: [
+          { tool_call_id: 'call_1', output: '{"success":true,"message":"Tool execution skipped"}' },
+          { tool_call_id: 'call_2', output: '{"success":true,"message":"Tool execution skipped"}' },
+        ],
+      }
+    );
+  });
 });
 
