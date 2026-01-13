@@ -85,5 +85,41 @@ describe('performRun', () => {
       }
     );
   });
+
+  it('should handle failed run status', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'failed',
+      thread_id: 'thread_123',
+      last_error: { message: 'Test error message', code: 'error_code' },
+    } as any;
+
+    mockMessages.create.mockResolvedValue({});
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(mockMessages.create).toHaveBeenCalledWith('thread_123', {
+      role: 'assistant',
+      content: 'Test error message',
+    });
+    expect(result).toEqual({
+      type: 'text',
+      text: { value: 'Test error message', annotations: [] },
+    });
+  });
+
+  it('should handle failed run with unknown error', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'failed',
+      thread_id: 'thread_123',
+    } as any;
+
+    mockMessages.create.mockResolvedValue({});
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(result.text.value).toBe('Unknown error');
+  });
 });
 
