@@ -165,5 +165,53 @@ describe('performRun', () => {
       text: { value: 'No response from assistant', annotations: [] },
     });
   });
+
+  it('should handle errors during tool output submission', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'requires_action',
+      thread_id: 'thread_123',
+      required_action: {
+        type: 'submit_tool_outputs',
+        submit_tool_outputs: {
+          tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'test', arguments: '{}' } }],
+        },
+      },
+    } as any;
+
+    const error = new Error('Submission failed');
+    mockRuns.submitToolOutputsAndPoll.mockRejectedValue(error);
+    mockMessages.list.mockResolvedValue({
+      data: [{ role: 'assistant', content: [{ type: 'text', text: { value: 'Response', annotations: [] } }] }],
+    });
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(mockRuns.submitToolOutputsAndPoll).toHaveBeenCalled();
+    expect(result).toBeDefined();
+  });
+
+  it('should handle empty tool calls array', async () => {
+    const run: Run = {
+      id: 'run_123',
+      status: 'requires_action',
+      thread_id: 'thread_123',
+      required_action: {
+        type: 'submit_tool_outputs',
+        submit_tool_outputs: {
+          tool_calls: [],
+        },
+      },
+    } as any;
+
+    mockMessages.list.mockResolvedValue({
+      data: [{ role: 'assistant', content: [{ type: 'text', text: { value: 'Response', annotations: [] } }] }],
+    });
+
+    const result = await performRun(mockClient, mockThread, run);
+
+    expect(mockRuns.submitToolOutputsAndPoll).not.toHaveBeenCalled();
+    expect(result).toBeDefined();
+  });
 });
 
