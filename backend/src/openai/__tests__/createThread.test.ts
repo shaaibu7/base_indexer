@@ -61,5 +61,36 @@ describe('createThread', () => {
     });
     expect(result).toEqual(mockThread);
   });
+
+  it('should handle empty string message', async () => {
+    const mockThread = { id: 'thread_123', object: 'thread' };
+    mockThreads.create.mockResolvedValue(mockThread);
+    mockThreads.messages.create.mockResolvedValue({});
+
+    const result = await createThread(mockClient, '');
+
+    expect(mockThreads.create).toHaveBeenCalled();
+    expect(mockThreads.messages.create).toHaveBeenCalledWith('thread_123', {
+      role: 'user',
+      content: '',
+    });
+    expect(result).toEqual(mockThread);
+  });
+
+  it('should handle errors during thread creation', async () => {
+    const error = new Error('Failed to create thread');
+    mockThreads.create.mockRejectedValue(error);
+
+    await expect(createThread(mockClient)).rejects.toThrow('Failed to create thread');
+  });
+
+  it('should handle errors during message creation', async () => {
+    const mockThread = { id: 'thread_123', object: 'thread' };
+    const error = new Error('Failed to create message');
+    mockThreads.create.mockResolvedValue(mockThread);
+    mockThreads.messages.create.mockRejectedValue(error);
+
+    await expect(createThread(mockClient, 'test message')).rejects.toThrow('Failed to create message');
+  });
 });
 

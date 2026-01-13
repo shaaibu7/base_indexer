@@ -58,5 +58,38 @@ describe('createAssistant', () => {
       })
     );
   });
+
+  it('should include indexer tool in assistant creation', async () => {
+    const mockAssistant = { id: 'asst_123' };
+    mockAssistants.create.mockResolvedValue(mockAssistant);
+
+    await createAssistant(mockClient);
+
+    expect(mockAssistants.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: [indexerTool],
+      })
+    );
+  });
+
+  it('should include prompt instructions', async () => {
+    const mockAssistant = { id: 'asst_123' };
+    mockAssistants.create.mockResolvedValue(mockAssistant);
+
+    await createAssistant(mockClient);
+
+    expect(mockAssistants.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instructions: indexerAssistantPrompt,
+      })
+    );
+  });
+
+  it('should handle errors during assistant creation', async () => {
+    const error = new Error('Failed to create assistant');
+    mockAssistants.create.mockRejectedValue(error);
+
+    await expect(createAssistant(mockClient)).rejects.toThrow('Failed to create assistant');
+  });
 });
 
